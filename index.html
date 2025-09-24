@@ -55,11 +55,19 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script type="text/babel">
-        // --- Global Firebase Config (from environment) ---
-        // These will be provided by the environment where the app is run.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'daily-task-tracker-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "AIza...", authDomain: "...", projectId: "...", /* ... */};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // --- Your web app's Firebase configuration (Hardcoded for reliability) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZBPlWEsuZkHZr-_UbZYY9ZvqRqso8qQk",
+            authDomain: "daily-task-tracker-97f29.firebaseapp.com",
+            projectId: "daily-task-tracker-97f29",
+            storageBucket: "daily-task-tracker-97f29.firebasestorage.app",
+            messagingSenderId: "797229727242",
+            appId: "1:797229727242:web:5a154912b2d4fa0d4269f3",
+            measurementId: "G-WM6TF1HCK0"
+        };
+        
+        // This is still needed for the database path, but firebaseConfig above is what matters for connection.
+        const appId = 'daily-task-tracker-97f29';
 
         // --- Firebase Initialization (using compat libraries) ---
         const app = firebase.initializeApp(firebaseConfig);
@@ -427,16 +435,9 @@
                     if(currentUser) {
                         setUser(currentUser);
                     } else {
-                        if (initialAuthToken) {
-                            try {
-                                await auth.signInWithCustomToken(initialAuthToken);
-                            } catch (error) {
-                                console.error("Custom token sign-in failed:", error);
-                                await auth.signInAnonymously();
-                            }
-                        } else {
-                            setUser(null);
-                        }
+                        // For this app, we require a login, so we just set user to null
+                        // if no one is logged in.
+                        setUser(null);
                     }
                     setIsLoading(false);
                 });
