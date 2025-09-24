@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Task Tracker</title>
+    <title>TaskTrack - Daily Task Tracker</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -38,6 +38,20 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .gradient-text {
+            background: linear-gradient(to right, #4f46e5, #9333ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -140,8 +154,93 @@
             );
         };
         
+        // --- New Home Page Component ---
+        const HomePage = ({ onLoginClick }) => {
+            return (
+                <React.Fragment>
+                    <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200">
+                        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                <div className="flex items-center">
+                                    <span className="text-2xl font-bold text-indigo-600">TaskTrack</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <a href="#features" className="text-sm font-semibold text-slate-600 hover:text-indigo-500 mr-4 transition-colors">Features</a>
+                                    <button onClick={onLoginClick} className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                                        Log In / Sign Up
+                                    </button>
+                                </div>
+                            </div>
+                        </nav>
+                    </header>
+
+                    <main className="relative overflow-hidden">
+                        <div aria-hidden="true" className="absolute inset-0 grid grid-cols-2 -space-x-52 opacity-20">
+                            <div className="blur-[106px] h-56 bg-gradient-to-br from-indigo-600 to-purple-500"></div>
+                            <div className="blur-[106px] h-32 bg-gradient-to-r from-cyan-400 to-sky-300"></div>
+                        </div>
+                        <div className="py-20 sm:py-32">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 fade-in-up">
+                                    Master Your Time, <span className="gradient-text">Ace Your Exams.</span>
+                                </h1>
+                                <p className="mt-6 max-w-2xl mx-auto text-lg text-slate-600 fade-in-up delay-100">
+                                    Stop guessing and start measuring. TaskTrack helps you analyze your study patterns, improve your time management, and boost your accuracy for peak exam performance.
+                                </p>
+                                <div className="mt-10 flex justify-center gap-x-6 fade-in-up delay-200">
+                                    <button onClick={onLoginClick} className="px-8 py-3 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                                        Get Started for Free
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <section id="features" className="bg-white py-20 sm:py-24">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="text-center">
+                                <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl fade-in-up">Everything you need to succeed.</h2>
+                                <p className="mt-4 text-lg text-slate-600 fade-in-up delay-100">The simplest way to gain a competitive edge.</p>
+                            </div>
+                            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                                <div className="p-8 bg-slate-50 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-200">
+                                    <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white mx-auto">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </div>
+                                    <h3 className="mt-6 text-lg font-semibold text-slate-900">Track Planned vs. Actual Time</h3>
+                                    <p className="mt-2 text-base text-slate-600">Set time goals for each task and compare them against your actual performance to identify areas for improvement.</p>
+                                </div>
+                                <div className="p-8 bg-slate-50 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-300">
+                                    <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white mx-auto">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+                                    </div>
+                                    <h3 className="mt-6 text-lg font-semibold text-slate-900">Measure Daily Accuracy</h3>
+                                    <p className="mt-2 text-base text-slate-600">Get a clear, data-driven score on your overall performance each day, helping you stay motivated and focused.</p>
+                                </div>
+                                <div className="p-8 bg-slate-50 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-400">
+                                    <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white mx-auto">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                    </div>
+                                    <h3 className="mt-6 text-lg font-semibold text-slate-900">Download PDF Reports</h3>
+                                    <p className="mt-2 text-base text-slate-600">Easily export your daily progress reports to review your performance over time and share with mentors or study groups.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <footer className="bg-slate-100 border-t border-slate-200">
+                        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+                            <div className="text-center">
+                                <p className="text-base text-slate-500">&copy; 2025 TaskTrack. All rights reserved.</p>
+                            </div>
+                        </div>
+                    </footer>
+                </React.Fragment>
+            );
+        };
+        
         // --- Authentication Components ---
-        const AuthPage = ({ setNotification }) => {
+        const AuthPage = ({ setNotification, onBackToHome }) => {
             const [isLogin, setIsLogin] = useState(true);
 
             const handleAuthSuccess = () => {
@@ -150,8 +249,17 @@
 
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-4">
-                    <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
-                        <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-800">
+                    <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
+                        <button 
+                            onClick={onBackToHome} 
+                            className="absolute top-4 left-4 text-slate-500 hover:text-indigo-600 transition-colors"
+                            aria-label="Back to Home"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                        </button>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-800 pt-8">
                             {isLogin ? 'Welcome Back!' : 'Create Account'}
                         </h2>
                         {isLogin ? 
@@ -542,6 +650,8 @@
             const [user, setUser] = useState(null);
             const [isLoading, setIsLoading] = useState(true);
             const [notification, setNotification] = useState(null);
+            // New state to manage which page is shown: 'home' or 'auth'
+            const [currentPage, setCurrentPage] = useState('home'); 
 
             useEffect(() => {
                 const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -549,14 +659,36 @@
                         setUser(currentUser);
                     } else {
                         setUser(null);
+                        // Do not reset to 'home' on logout automatically
+                        // to prevent being kicked out unexpectedly.
+                        // The logout button will handle this.
                     }
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
             }, []);
+
+            const handleLogout = () => {
+                auth.signOut();
+                setCurrentPage('home'); // Go to home page on explicit logout
+            };
             
             const handleDismissNotification = () => {
                 setNotification(null);
+            };
+            
+            const renderContent = () => {
+                if (user) {
+                    return <Dashboard user={user} setNotification={setNotification} onLogout={handleLogout} />;
+                }
+                
+                if (currentPage === 'home') {
+                    return <HomePage onLoginClick={() => setCurrentPage('auth')} />;
+                }
+                
+                if (currentPage === 'auth') {
+                    return <AuthPage setNotification={setNotification} onBackToHome={() => setCurrentPage('home')} />;
+                }
             };
 
             if (isLoading) {
@@ -566,7 +698,7 @@
             return (
                 <React.Fragment>
                     {notification && <Notification message={notification.message} type={notification.type} onDismiss={handleDismissNotification} />}
-                    {user ? <Dashboard user={user} setNotification={setNotification} /> : <AuthPage setNotification={setNotification} />}
+                    {renderContent()}
                 </React.Fragment>
             );
         };
