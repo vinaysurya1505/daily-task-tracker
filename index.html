@@ -85,7 +85,7 @@
         );
         
         const Notification = ({ message, type, onDismiss }) => {
-            const baseClasses = "fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white transition-opacity duration-300";
+            const baseClasses = "fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white transition-opacity duration-300 z-50";
             const typeClasses = {
                 success: "bg-green-500",
                 error: "bg-red-500",
@@ -102,6 +102,41 @@
                 <div className={`${baseClasses} ${typeClasses[type]}`}>
                     {message}
                     <button onClick={onDismiss} className="ml-4 font-bold">X</button>
+                </div>
+            );
+        };
+        
+        const CompletionModal = ({ task, onComplete, onCancel }) => {
+            const [actualDuration, setActualDuration] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (actualDuration > 0) {
+                    onComplete(task, actualDuration);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm">
+                        <h3 className="text-lg font-semibold mb-2">Complete Task</h3>
+                        <p className="text-sm text-slate-600 mb-4">How long did "<span className="font-bold">{task.text}</span>" actually take you? (in minutes)</p>
+                        <form onSubmit={handleSubmit}>
+                            <p className="text-xs text-slate-500 mb-2">You had planned for: {task.expectedDuration} minutes</p>
+                            <input
+                                type="number"
+                                value={actualDuration}
+                                onChange={(e) => setActualDuration(e.target.value)}
+                                placeholder="e.g., 45"
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-4 mt-6">
+                                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</button>
+                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Complete</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             );
         };
@@ -229,7 +264,9 @@
         const Dashboard = ({ user, setNotification }) => {
             const [tasks, setTasks] = useState([]);
             const [newTask, setNewTask] = useState('');
+            const [newExpectedDuration, setNewExpectedDuration] = useState('');
             const [isLoading, setIsLoading] = useState(true);
+            const [taskToComplete, setTaskToComplete] = useState(null);
             const today = useMemo(() => new Date().toISOString().split('T')[0], []);
             
             const tasksCollectionRef = useMemo(() => 
@@ -262,15 +299,21 @@
 
             const handleAddTask = async (e) => {
                 e.preventDefault();
-                if (newTask.trim() === '') return;
+                if (newTask.trim() === '' || !newExpectedDuration || newExpectedDuration <= 0) {
+                    setNotification({ type: 'error', message: "Please enter a task and a valid duration." });
+                    return;
+                }
                 try {
                     await tasksCollectionRef.add({
                         text: newTask.trim(),
+                        expectedDuration: parseInt(newExpectedDuration, 10),
                         completed: false,
+                        actualDuration: null,
                         date: today,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     setNewTask('');
+                    setNewExpectedDuration('');
                     setNotification({ type: 'success', message: 'Task added!' });
                 } catch (error) {
                     console.error("Error adding task: ", error);
@@ -278,14 +321,30 @@
                 }
             };
             
-            const toggleTask = async (task) => {
+            const handleCompleteTask = async (task, actualDuration) => {
                 const taskRef = tasksCollectionRef.doc(task.id);
                 try {
                     await taskRef.update({
-                        completed: !task.completed
+                        completed: true,
+                        actualDuration: parseInt(actualDuration, 10)
+                    });
+                    setTaskToComplete(null);
+                    setNotification({ type: 'success', message: 'Task marked as complete!' });
+                } catch (error) {
+                    console.error("Error completing task: ", error);
+                    setNotification({ type: 'error', message: "Couldn't complete task." });
+                }
+            };
+            
+            const handleUncompleteTask = async (task) => {
+                const taskRef = tasksCollectionRef.doc(task.id);
+                try {
+                    await taskRef.update({
+                        completed: false,
+                        actualDuration: null
                     });
                 } catch (error) {
-                    console.error("Error updating task: ", error);
+                     console.error("Error un-completing task: ", error);
                     setNotification({ type: 'error', message: "Couldn't update task." });
                 }
             };
@@ -301,6 +360,25 @@
                 }
             };
             
+            const calculateTaskAccuracy = (expected, actual) => {
+                if (!expected || !actual || expected <= 0 || actual <= 0) return 0;
+                const accuracy = 100 - (Math.abs(expected - actual) / expected) * 100;
+                return Math.max(0, Math.round(accuracy));
+            };
+
+            const overallAccuracy = useMemo(() => {
+                const completedTasksWithDuration = tasks.filter(t => t.completed && t.expectedDuration > 0 && t.actualDuration > 0);
+                if (completedTasksWithDuration.length === 0) return 0;
+        
+                const totalExpected = completedTasksWithDuration.reduce((sum, task) => sum + task.expectedDuration, 0);
+                const totalActual = completedTasksWithDuration.reduce((sum, task) => sum + task.actualDuration, 0);
+                
+                if(totalExpected === 0) return 0;
+        
+                const accuracy = 100 - (Math.abs(totalExpected - totalActual) / totalExpected) * 100;
+                return Math.max(0, Math.round(accuracy));
+            }, [tasks]);
+            
             const downloadReport = () => {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
@@ -310,12 +388,18 @@
                 doc.setFontSize(12);
                 doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 30);
                 
-                const tableColumn = ["#", "Task", "Status"];
-                const tableRows = tasks.map((task, index) => [
-                    index + 1,
-                    task.text,
-                    task.completed ? "Completed" : "Pending",
-                ]);
+                const tableColumn = ["#", "Task", "Planned (min)", "Actual (min)", "Accuracy", "Status"];
+                const tableRows = tasks.map((task, index) => {
+                     const accuracy = task.completed ? `${calculateTaskAccuracy(task.expectedDuration, task.actualDuration)}%` : 'N/A';
+                     return [
+                         index + 1,
+                         task.text,
+                         task.expectedDuration,
+                         task.completed ? task.actualDuration : 'N/A',
+                         accuracy,
+                         task.completed ? "Completed" : "Pending",
+                     ];
+                });
 
                 doc.autoTable({
                     head: [tableColumn],
@@ -326,7 +410,6 @@
                 
                 const completedTasks = tasks.filter(t => t.completed).length;
                 const totalTasks = tasks.length;
-                const accuracy = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(2) : '0.00';
                 
                 let finalY = doc.lastAutoTable.finalY || 40;
                 doc.setFontSize(14);
@@ -334,7 +417,7 @@
                 doc.setFontSize(12);
                 doc.text(`Total Tasks: ${totalTasks}`, 14, finalY + 22);
                 doc.text(`Completed Tasks: ${completedTasks}`, 14, finalY + 29);
-                doc.text(`Accuracy: ${accuracy}%`, 14, finalY + 36);
+                doc.text(`Overall Accuracy: ${overallAccuracy}%`, 14, finalY + 36);
 
                 doc.save(`Progress-Report-${today}.pdf`);
                 setNotification({ type: 'success', message: 'Report downloaded!' });
@@ -342,7 +425,6 @@
 
             const completedTasks = tasks.filter(t => t.completed).length;
             const totalTasks = tasks.length;
-            const accuracy = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             
             return (
                 <div className="min-h-screen bg-slate-100">
@@ -363,6 +445,13 @@
                                     placeholder="What do you need to do?"
                                     className="flex-grow px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 />
+                                <input 
+                                    type="number" 
+                                    value={newExpectedDuration} 
+                                    onChange={(e) => setNewExpectedDuration(e.target.value)}
+                                    placeholder="Duration (min)"
+                                    className="w-32 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
                                 <button type="submit" className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                                     Add
                                 </button>
@@ -381,13 +470,13 @@
                                <div className="relative w-24 h-24">
                                    <svg className="w-full h-full" viewBox="0 0 36 36">
                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e6e6e6" strokeWidth="3" />
-                                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={accuracy > 0 ? '#4ade80' : '#e6e6e6'} strokeWidth="3" strokeDasharray={`${accuracy}, 100`} strokeLinecap="round" />
+                                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={overallAccuracy > 0 ? '#4ade80' : '#e6e6e6'} strokeWidth="3" strokeDasharray={`${overallAccuracy}, 100`} strokeLinecap="round" />
                                    </svg>
                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                                       <p className="text-xl font-bold text-slate-700">{accuracy}%</p>
+                                       <p className="text-xl font-bold text-slate-700">{overallAccuracy}%</p>
                                    </div>
                                </div>
-                               <p className="text-sm font-medium text-slate-500 mt-2">Accuracy</p>
+                               <p className="text-sm font-medium text-slate-500 mt-2">Overall Accuracy</p>
                            </div>
                         </div>
                         <div className="bg-white rounded-2xl shadow-lg p-6">
@@ -395,20 +484,38 @@
                                 <p className="text-center text-slate-500">Loading tasks...</p>
                             ) : tasks.length > 0 ? (
                                 <ul className="space-y-4">
-                                    {tasks.map(task => (
-                                        <li key={task.id} className="flex items-center p-3 bg-slate-50 rounded-lg transition-all duration-300 hover:shadow-md">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={task.completed}
-                                                onChange={() => toggleTask(task)}
-                                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                            />
-                                            <span className={`flex-grow mx-4 text-slate-700 ${task.completed ? 'line-through text-slate-400' : ''}`}>{task.text}</span>
-                                            <button onClick={() => deleteTask(task.id)} className="text-red-400 hover:text-red-600 transition">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
-                                        </li>
-                                    ))}
+                                    {tasks.map(task => {
+                                        const taskAccuracy = task.completed ? calculateTaskAccuracy(task.expectedDuration, task.actualDuration) : null;
+                                        return (
+                                            <li key={task.id} className="flex items-center p-3 bg-slate-50 rounded-lg transition-all duration-300 hover:shadow-md">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={task.completed}
+                                                    onChange={() => task.completed ? handleUncompleteTask(task) : setTaskToComplete(task)}
+                                                    className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                />
+                                                <div className="flex-grow mx-4">
+                                                    <p className={`text-slate-700 ${task.completed ? 'line-through text-slate-400' : ''}`}>{task.text}</p>
+                                                    <div className="text-xs text-slate-500 flex items-center gap-x-3 mt-1 flex-wrap">
+                                                        <span>Planned: {task.expectedDuration} min</span>
+                                                        {task.completed && (
+                                                            <React.Fragment>
+                                                                <span>|</span>
+                                                                <span>Actual: {task.actualDuration} min</span>
+                                                                <span>|</span>
+                                                                <span className={taskAccuracy >= 80 ? 'text-green-600 font-semibold' : 'text-amber-600 font-semibold'}>
+                                                                    Accuracy: {taskAccuracy}%
+                                                                </span>
+                                                            </React.Fragment>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => deleteTask(task.id)} className="text-red-400 hover:text-red-600 transition ml-auto flex-shrink-0">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             ) : (
                                 <p className="text-center text-slate-500 py-8">No tasks for today. Add one to get started!</p>
@@ -420,6 +527,13 @@
                             </button>
                         </div>
                     </main>
+                    {taskToComplete && (
+                        <CompletionModal
+                            task={taskToComplete}
+                            onComplete={handleCompleteTask}
+                            onCancel={() => setTaskToComplete(null)}
+                        />
+                    )}
                 </div>
             );
         };
@@ -466,4 +580,3 @@
     </script>
 </body>
 </html>
-
