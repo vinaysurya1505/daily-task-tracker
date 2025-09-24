@@ -13,6 +13,8 @@
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom styles and component logic -->
     <style>
         body {
@@ -106,7 +108,7 @@
         const db = firebase.firestore();
 
         // --- React Components (All in one file) ---
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
         // --- Helper Components ---
         const Loader = () => (
@@ -430,6 +432,130 @@
             );
         };
         
+        const WeeklyAnalyticsChart = ({ tasksCollectionRef, theme }) => {
+            const chartRef = useRef(null);
+            const chartInstanceRef = useRef(null);
+            const [isLoading, setIsLoading] = useState(true);
+
+            const calculateDailyAccuracy = (tasks) => {
+                const completedTasksWithDuration = tasks.filter(t => t.completed && t.expectedDuration > 0 && t.actualDuration > 0);
+                if (completedTasksWithDuration.length === 0) return 0;
+                const totalExpected = completedTasksWithDuration.reduce((sum, task) => sum + task.expectedDuration, 0);
+                const totalActual = completedTasksWithDuration.reduce((sum, task) => sum + task.actualDuration, 0);
+                if (totalExpected === 0) return 0;
+                const accuracy = 100 - (Math.abs(totalExpected - totalActual) / totalExpected) * 100;
+                return Math.max(0, Math.round(accuracy));
+            };
+            
+            useEffect(() => {
+                const fetchData = async () => {
+                    setIsLoading(true);
+                    const today = new Date();
+                    const labels = [];
+                    const dailyTasks = {};
+
+                    for (let i = 6; i >= 0; i--) {
+                        const date = new Date(today);
+                        date.setDate(today.getDate() - i);
+                        const isoDate = date.toISOString().split('T')[0];
+                        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+                        dailyTasks[isoDate] = [];
+                    }
+
+                    const startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 6);
+                    const startDateISO = startDate.toISOString().split('T')[0];
+                    const todayISO = today.toISOString().split('T')[0];
+
+                    try {
+                        const q = tasksCollectionRef.where('date', '>=', startDateISO).where('date', '<=', todayISO);
+                        const querySnapshot = await q.get();
+                        querySnapshot.forEach(doc => {
+                            const task = doc.data();
+                            if (dailyTasks[task.date]) {
+                                dailyTasks[task.date].push(task);
+                            }
+                        });
+
+                        const data = Object.keys(dailyTasks).sort().map(date => calculateDailyAccuracy(dailyTasks[date]));
+                        
+                        if (chartRef.current) {
+                             if (chartInstanceRef.current) {
+                                chartInstanceRef.current.destroy();
+                            }
+                            const ctx = chartRef.current.getContext('2d');
+                            const gridColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                            const labelColor = theme === 'dark' ? '#cbd5e1' : '#475569';
+                            
+                            chartInstanceRef.current = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels,
+                                    datasets: [{
+                                        label: 'Daily Accuracy',
+                                        data,
+                                        backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                                        borderColor: 'rgba(99, 102, 241, 1)',
+                                        borderWidth: 1,
+                                        borderRadius: 5,
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            max: 100,
+                                            ticks: {
+                                                callback: (value) => `${value}%`,
+                                                color: labelColor,
+                                            },
+                                            grid: { color: gridColor }
+                                        },
+                                        x: {
+                                            ticks: { color: labelColor },
+                                            grid: { display: false }
+                                        }
+                                    },
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: {
+                                             callbacks: {
+                                                label: (context) => `Accuracy: ${context.raw}%`
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error fetching weekly data:", error);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+
+                fetchData();
+                
+                return () => {
+                     if (chartInstanceRef.current) {
+                        chartInstanceRef.current.destroy();
+                    }
+                }
+            }, [theme, tasksCollectionRef]);
+
+            return (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+                     <h3 className="text-lg sm:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-4">Last 7 Days Accuracy</h3>
+                     <div className="relative h-64">
+                        {isLoading ? <p className="text-center text-slate-500 dark:text-slate-400">Loading chart...</p> : <canvas ref={chartRef}></canvas>}
+                     </div>
+                </div>
+            )
+        };
+
+
         // --- Main Application Components ---
         const Dashboard = ({ user, setNotification, onLogout, theme, toggleTheme }) => {
             const [tasks, setTasks] = useState([]);
@@ -672,6 +798,9 @@
                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2">Overall Accuracy</p>
                            </div>
                         </div>
+
+                        <WeeklyAnalyticsChart tasksCollectionRef={tasksCollectionRef} theme={theme} />
+
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 sm:p-6">
                             {isLoading ? (
                                 <p className="text-center text-slate-500 dark:text-slate-400">Loading tasks...</p>
