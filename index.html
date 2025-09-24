@@ -76,6 +76,254 @@
 </head>
 <body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
     <div id="root"></div>
+    <!-- ================= Pomodoro Timer Feature ================= -->
+    <div id="pomodoro-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="close-pomodoro">&times;</span>
+            <h2>Pomodoro Timer</h2>
+            <div id="pomodoro-task-name"></div>
+            <div id="pomodoro-timer-display">25:00</div>
+            <button id="pomodoro-start">Start</button>
+            <button id="pomodoro-stop">Stop</button>
+            <div id="pomodoro-status"></div>
+        </div>
+    </div>
+
+    <!-- ================= Streak Counter ================= -->
+    <div id="streak-counter" style="font-size:1.2em; margin:10px 0; color:#e25822; font-weight:bold;">
+        <!-- Streak will be injected here -->
+    </div>
+
+    <!-- ================= Analytics Link ================= -->
+    <nav>
+        <a href="#" id="analytics-link">Analytics</a>
+    </nav>
+
+    <!-- ================= Analytics Modal/Page ================= -->
+    <div id="analytics-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="close-analytics">&times;</span>
+            <h2>Analytics</h2>
+            <canvas id="pieChart" width="300" height="300"></canvas>
+            <canvas id="accuracyChart" width="300" height="200"></canvas>
+            <canvas id="hoursChart" width="300" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- ================= Task Notes Field ================= -->
+    <script>
+    // ================= Pomodoro Timer JS =================
+    let pomodoroInterval = null;
+    let pomodoroTime = 25 * 60;
+    let pomodoroBreak = 5 * 60;
+    let pomodoroMode = 'focus';
+    let currentTaskId = null;
+
+    function openPomodoro(taskId, taskName) {
+        currentTaskId = taskId;
+        pomodoroMode = 'focus';
+        pomodoroTime = 25 * 60;
+        document.getElementById('pomodoro-modal').style.display = 'block';
+        document.getElementById('pomodoro-task-name').textContent = 'Task: ' + taskName;
+        updatePomodoroDisplay();
+        document.getElementById('pomodoro-status').textContent = 'Focus Mode';
+    }
+
+    function closePomodoro() {
+        document.getElementById('pomodoro-modal').style.display = 'none';
+        clearInterval(pomodoroInterval);
+    }
+
+    function updatePomodoroDisplay() {
+        let min = Math.floor(pomodoroTime / 60);
+        let sec = pomodoroTime % 60;
+        document.getElementById('pomodoro-timer-display').textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+    }
+
+    function startPomodoro() {
+        clearInterval(pomodoroInterval);
+        pomodoroInterval = setInterval(() => {
+            if (pomodoroTime > 0) {
+                pomodoroTime--;
+                updatePomodoroDisplay();
+            } else {
+                if (pomodoroMode === 'focus') {
+                    pomodoroMode = 'break';
+                    pomodoroTime = pomodoroBreak;
+                    document.getElementById('pomodoro-status').textContent = 'Break Time!';
+                    // Track time spent on task
+                    addTaskTime(currentTaskId, 25);
+                } else {
+                    pomodoroMode = 'focus';
+                    pomodoroTime = 25 * 60;
+                    document.getElementById('pomodoro-status').textContent = 'Focus Mode';
+                }
+                updatePomodoroDisplay();
+            }
+        }, 1000);
+    }
+
+    function stopPomodoro() {
+        clearInterval(pomodoroInterval);
+    }
+
+    document.getElementById('close-pomodoro').onclick = closePomodoro;
+    document.getElementById('pomodoro-start').onclick = startPomodoro;
+    document.getElementById('pomodoro-stop').onclick = stopPomodoro;
+
+    // ================= Streak Counter JS =================
+    function updateStreakCounter() {
+        let streak = getStreak();
+        document.getElementById('streak-counter').textContent = `🔥 ${streak} Day Streak!`;
+    }
+
+    function getStreak() {
+        let completedDays = JSON.parse(localStorage.getItem('completedDays') || '[]');
+        let today = new Date().toISOString().slice(0,10);
+        if (!completedDays.includes(today)) {
+            // Check if at least one task completed today
+            if (isTaskCompletedToday()) {
+                completedDays.push(today);
+                localStorage.setItem('completedDays', JSON.stringify(completedDays));
+            }
+        }
+        // Calculate streak
+        completedDays.sort();
+        let streak = 0;
+        let d = new Date();
+        for (let i = completedDays.length-1; i >= 0; i--) {
+            let day = new Date(completedDays[i]);
+            if (d.toISOString().slice(0,10) === day.toISOString().slice(0,10)) {
+                streak++;
+                d.setDate(d.getDate()-1);
+            } else {
+                break;
+            }
+        }
+        return streak;
+    }
+
+    function isTaskCompletedToday() {
+        // Implement this function to check if at least one task is completed today
+        // Example: return true if any task has completed=true for today
+        // This should be integrated with your existing task completion logic
+        return false; // Placeholder
+    }
+
+    updateStreakCounter();
+
+    // ================= Analytics Page JS =================
+    document.getElementById('analytics-link').onclick = function() {
+        document.getElementById('analytics-modal').style.display = 'block';
+        renderAnalytics();
+    };
+    document.getElementById('close-analytics').onclick = function() {
+        document.getElementById('analytics-modal').style.display = 'none';
+    };
+
+    function renderAnalytics() {
+        // Pie Chart: Time distribution across subjects (monthly)
+        drawPieChart(getTimeDistributionData());
+        // Accuracy Chart: Most/least accurate subjects
+        drawAccuracyChart(getAccuracyData());
+        // Hours Chart: Total study hours per week/month
+        drawHoursChart(getHoursData());
+    }
+
+    function getTimeDistributionData() {
+        // Return {labels: [...], data: [...]} for pie chart
+        // Example: {labels: ['Math','Science'], data: [10,20]}
+        return {labels: ['Math','Science','English'], data: [10,20,5]}; // Placeholder
+    }
+
+    function getAccuracyData() {
+        // Return {labels: [...], data: [...]} for accuracy chart
+        return {labels: ['Math','Science','English'], data: [95,80,60]}; // Placeholder
+    }
+
+    function getHoursData() {
+        // Return {labels: [...], data: [...]}
+        return {labels: ['Week 1','Week 2','Week 3'], data: [5,8,6]}; // Placeholder
+    }
+
+    function drawPieChart(data) {
+        let ctx = document.getElementById('pieChart').getContext('2d');
+        // Simple pie chart drawing (replace with Chart.js for advanced)
+        ctx.clearRect(0,0,300,300);
+        let total = data.data.reduce((a,b)=>a+b,0);
+        let start = 0;
+        let colors = ['#e25822','#4caf50','#2196f3','#ffeb3b','#9c27b0'];
+        for(let i=0;i<data.data.length;i++){
+            let slice = data.data[i]/total*2*Math.PI;
+            ctx.beginPath();
+            ctx.moveTo(150,150);
+            ctx.arc(150,150,100,start,start+slice);
+            ctx.closePath();
+            ctx.fillStyle = colors[i%colors.length];
+            ctx.fill();
+            start += slice;
+        }
+        // Add legend
+        ctx.font = '14px Arial';
+        for(let i=0;i<data.labels.length;i++){
+            ctx.fillStyle = colors[i%colors.length];
+            ctx.fillRect(10,20+i*20,15,15);
+            ctx.fillStyle = '#333';
+            ctx.fillText(data.labels[i],30,32+i*20);
+        }
+    }
+
+    function drawAccuracyChart(data) {
+        let ctx = document.getElementById('accuracyChart').getContext('2d');
+        ctx.clearRect(0,0,300,200);
+        let max = Math.max(...data.data);
+        for(let i=0;i<data.data.length;i++){
+            let x = 50+i*70;
+            let y = 180-(data.data[i]/max*150);
+            ctx.fillStyle = '#4caf50';
+            ctx.fillRect(x,y,40,180-y);
+            ctx.fillStyle = '#333';
+            ctx.fillText(data.labels[i],x,195);
+            ctx.fillText(data.data[i]+'%',x, y-5);
+        }
+    }
+
+    function drawHoursChart(data) {
+        let ctx = document.getElementById('hoursChart').getContext('2d');
+        ctx.clearRect(0,0,300,200);
+        let max = Math.max(...data.data);
+        for(let i=0;i<data.data.length;i++){
+            let x = 50+i*70;
+            let y = 180-(data.data[i]/max*150);
+            ctx.fillStyle = '#2196f3';
+            ctx.fillRect(x,y,40,180-y);
+            ctx.fillStyle = '#333';
+            ctx.fillText(data.labels[i],x,195);
+            ctx.fillText(data.data[i]+'h',x, y-5);
+        }
+    }
+
+    // ================= Task Notes JS =================
+    function renderTaskNotes(taskId) {
+        let notes = localStorage.getItem('taskNotes_'+taskId) || '';
+        let notesDiv = document.getElementById('task-notes-'+taskId);
+        if (notesDiv) notesDiv.value = notes;
+    }
+
+    function saveTaskNotes(taskId) {
+        let notesDiv = document.getElementById('task-notes-'+taskId);
+        if (notesDiv) {
+            localStorage.setItem('taskNotes_'+taskId, notesDiv.value);
+        }
+    }
+
+    // ================= Utility: Add Task Time =================
+    function addTaskTime(taskId, minutes) {
+        let key = 'taskTime_'+taskId;
+        let time = parseInt(localStorage.getItem(key) || '0');
+        localStorage.setItem(key, time + minutes);
+    }
+    </script>
 
     <!-- React and ReactDOM from CDN -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -85,7 +333,6 @@
 
     <!-- Firebase SDKs (Compat Version for browser usage without a module bundler) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script type="text/babel">
@@ -958,4 +1205,3 @@
     </script>
 </body>
 </html>
-
