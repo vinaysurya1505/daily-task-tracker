@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Task Tracker</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <!-- Custom styles and component logic -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        /* Simple loader animation */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <!-- React and ReactDOM from CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX transpilation -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <!-- Firebase SDKs (Compat Version for browser usage without a module bundler) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <script type="text/babel">
+        // --- Global Firebase Config (from environment) ---
+        // These will be provided by the environment where the app is run.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'daily-task-tracker-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "AIza...", authDomain: "...", projectId: "...", /* ... */};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- Firebase Initialization (using compat libraries) ---
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // --- React Components (All in one file) ---
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Helper Components ---
+        const Loader = () => (
+            <div className="flex justify-center items-center h-screen">
+                <div className="loader"></div>
+            </div>
+        );
+        
+        const Notification = ({ message, type, onDismiss }) => {
+            const baseClasses = "fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white transition-opacity duration-300";
+            const typeClasses = {
+                success: "bg-green-500",
+                error: "bg-red-500",
+            };
+
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    onDismiss();
+                }, 3000);
+                return () => clearTimeout(timer);
+            }, [onDismiss]);
+        
+            return (
+                <div className={`${baseClasses} ${typeClasses[type]}`}>
+                    {message}
+                    <button onClick={onDismiss} className="ml-4 font-bold">X</button>
+                </div>
+            );
+        };
+        
+        // --- Authentication Components ---
+        const AuthPage = ({ setNotification }) => {
+            const [isLogin, setIsLogin] = useState(true);
+
+            const handleAuthSuccess = () => {
+                setNotification({ type: 'success', message: isLogin ? 'Logged in successfully!' : 'Signed up successfully!' });
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-4">
+                    <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+                        <h2 className="text-3xl font-bold text-center text-slate-800">
+                            {isLogin ? 'Welcome Back!' : 'Create Account'}
+                        </h2>
+                        {isLogin ? 
+                            <Login onSuccess={handleAuthSuccess} setNotification={setNotification} /> : 
+                            <Signup onSuccess={handleAuthSuccess} setNotification={setNotification} />
+                        }
+                        <p className="text-center text-sm text-slate-500">
+                            {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                            <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-indigo-600 hover:text-indigo-500">
+                                {isLogin ? 'Sign up' : 'Log in'}
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+        
+        const Login = ({ onSuccess, setNotification }) => {
+            const [mobile, setMobile] = useState('');
+            const [password, setPassword] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                if (!mobile || !password) {
+                    setNotification({ type: 'error', message: 'Please fill in all fields.' });
+                    return;
+                }
+                setIsLoading(true);
+                const email = `${mobile}@taskapp.local`;
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                    onSuccess();
+                } catch (error) {
+                    console.error("Login Error:", error);
+                    setNotification({ type: 'error', message: error.message || 'Failed to log in.' });
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <form onSubmit={handleLogin} className="space-y-6">
+                    <div>
+                        <label htmlFor="mobile-login" className="text-sm font-medium text-slate-600">Mobile Number</label>
+                        <input id="mobile-login" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="e.g., 9876543210" className="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                    </div>
+                    <div>
+                        <label htmlFor="password-login" className="text-sm font-medium text-slate-600">Password</label>
+                        <input id="password-login" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                    </div>
+                    <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300">
+                        {isLoading ? 'Logging in...' : 'Log In'}
+                    </button>
+                </form>
+            );
+        };
+
+        const Signup = ({ onSuccess, setNotification }) => {
+            const [mobile, setMobile] = useState('');
+            const [password, setPassword] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+
+            const handleSignup = async (e) => {
+                e.preventDefault();
+                if (password.length < 6) {
+                    setNotification({ type: 'error', message: 'Password should be at least 6 characters.' });
+                    return;
+                }
+                 if (!/^\d{10}$/.test(mobile)) {
+                    setNotification({ type: 'error', message: 'Please enter a valid 10-digit mobile number.' });
+                    return;
+                }
+                setIsLoading(true);
+                const email = `${mobile}@taskapp.local`;
+                try {
+                    await auth.createUserWithEmailAndPassword(email, password);
+                    onSuccess();
+                } catch (error) {
+                    console.error("Signup Error:", error);
+                    setNotification({ type: 'error', message: error.message || 'Failed to sign up.' });
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            
+            return (
+                <form onSubmit={handleSignup} className="space-y-4">
+                    <div>
+                        <label htmlFor="mobile-signup" className="text-sm font-medium text-slate-600">Mobile Number</label>
+                        <input id="mobile-signup" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Enter your 10-digit mobile" className="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                    </div>
+                    <div>
+                        <label htmlFor="password-signup" className="text-sm font-medium text-slate-600">Password</label>
+                        <input id="password-signup" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                    </div>
+                    <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-3 rounded-lg">
+                        <p className="text-xs font-bold">Important!</p>
+                        <p className="text-xs">There is no way to recover your password. Please save it in a safe place.</p>
+                    </div>
+                    <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300">
+                        {isLoading ? 'Creating Account...' : 'Sign Up'}
+                    </button>
+                </form>
+            );
+        };
+        
+        // --- Main Application Components ---
+        const Dashboard = ({ user, setNotification }) => {
+            const [tasks, setTasks] = useState([]);
+            const [newTask, setNewTask] = useState('');
+            const [isLoading, setIsLoading] = useState(true);
+            const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+            
+            const tasksCollectionRef = useMemo(() => 
+                db.collection(`artifacts/${appId}/users/${user.uid}/tasks`), 
+                [user.uid]
+            );
+
+            useEffect(() => {
+                setIsLoading(true);
+                const q = tasksCollectionRef.where("date", "==", today);
+                
+                const unsubscribe = q.onSnapshot((querySnapshot) => {
+                    const tasksData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    tasksData.sort((a, b) => {
+                        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                        const aTime = a.createdAt ? a.createdAt.seconds : 0;
+                        const bTime = b.createdAt ? b.createdAt.seconds : 0;
+                        return aTime - bTime;
+                    });
+                    setTasks(tasksData);
+                    setIsLoading(false);
+                }, (error) => {
+                    console.error("Error fetching tasks: ", error);
+                    setNotification({ type: 'error', message: "Couldn't load tasks."});
+                    setIsLoading(false);
+                });
+
+                return () => unsubscribe();
+            }, [tasksCollectionRef, today]);
+
+            const handleAddTask = async (e) => {
+                e.preventDefault();
+                if (newTask.trim() === '') return;
+                try {
+                    await tasksCollectionRef.add({
+                        text: newTask.trim(),
+                        completed: false,
+                        date: today,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    setNewTask('');
+                    setNotification({ type: 'success', message: 'Task added!' });
+                } catch (error) {
+                    console.error("Error adding task: ", error);
+                    setNotification({ type: 'error', message: "Couldn't add task." });
+                }
+            };
+            
+            const toggleTask = async (task) => {
+                const taskRef = tasksCollectionRef.doc(task.id);
+                try {
+                    await taskRef.update({
+                        completed: !task.completed
+                    });
+                } catch (error) {
+                    console.error("Error updating task: ", error);
+                    setNotification({ type: 'error', message: "Couldn't update task." });
+                }
+            };
+
+            const deleteTask = async (taskId) => {
+                const taskRef = tasksCollectionRef.doc(taskId);
+                try {
+                    await taskRef.delete();
+                    setNotification({ type: 'success', message: 'Task deleted!' });
+                } catch (error) {
+                    console.error("Error deleting task: ", error);
+                    setNotification({ type: 'error', message: "Couldn't delete task." });
+                }
+            };
+            
+            const downloadReport = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFontSize(20);
+                doc.text("Daily Progress Report", 14, 22);
+                doc.setFontSize(12);
+                doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 30);
+                
+                const tableColumn = ["#", "Task", "Status"];
+                const tableRows = tasks.map((task, index) => [
+                    index + 1,
+                    task.text,
+                    task.completed ? "Completed" : "Pending",
+                ]);
+
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: 40,
+                    theme: 'grid'
+                });
+                
+                const completedTasks = tasks.filter(t => t.completed).length;
+                const totalTasks = tasks.length;
+                const accuracy = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(2) : '0.00';
+                
+                let finalY = doc.lastAutoTable.finalY || 40;
+                doc.setFontSize(14);
+                doc.text("Summary", 14, finalY + 15);
+                doc.setFontSize(12);
+                doc.text(`Total Tasks: ${totalTasks}`, 14, finalY + 22);
+                doc.text(`Completed Tasks: ${completedTasks}`, 14, finalY + 29);
+                doc.text(`Accuracy: ${accuracy}%`, 14, finalY + 36);
+
+                doc.save(`Progress-Report-${today}.pdf`);
+                setNotification({ type: 'success', message: 'Report downloaded!' });
+            };
+
+            const completedTasks = tasks.filter(t => t.completed).length;
+            const totalTasks = tasks.length;
+            const accuracy = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            
+            return (
+                <div className="min-h-screen bg-slate-100">
+                    <header className="bg-white shadow-md">
+                        <div className="max-w-4xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                            <h1 className="text-2xl font-bold text-indigo-600">TaskTrack</h1>
+                            <button onClick={() => auth.signOut()} className="text-sm font-medium text-slate-600 hover:text-indigo-500 transition">Logout</button>
+                        </div>
+                    </header>
+                    <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+                            <h2 className="text-xl font-semibold text-slate-700">Today's Tasks - {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h2>
+                            <form onSubmit={handleAddTask} className="flex items-center gap-4 mt-4">
+                                <input 
+                                    type="text" 
+                                    value={newTask} 
+                                    onChange={(e) => setNewTask(e.target.value)}
+                                    placeholder="What do you need to do?"
+                                    className="flex-grow px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                                <button type="submit" className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                                    Add
+                                </button>
+                            </form>
+                        </div>
+                        <div className="grid md:grid-cols-3 gap-6 mb-8">
+                           <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col justify-center items-center">
+                               <p className="text-4xl font-bold text-indigo-600">{totalTasks}</p>
+                               <p className="text-sm font-medium text-slate-500 mt-1">Total Tasks</p>
+                           </div>
+                           <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col justify-center items-center">
+                               <p className="text-4xl font-bold text-green-500">{completedTasks}</p>
+                               <p className="text-sm font-medium text-slate-500 mt-1">Completed</p>
+                           </div>
+                           <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col justify-center items-center">
+                               <div className="relative w-24 h-24">
+                                   <svg className="w-full h-full" viewBox="0 0 36 36">
+                                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e6e6e6" strokeWidth="3" />
+                                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={accuracy > 0 ? '#4ade80' : '#e6e6e6'} strokeWidth="3" strokeDasharray={`${accuracy}, 100`} strokeLinecap="round" />
+                                   </svg>
+                                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                                       <p className="text-xl font-bold text-slate-700">{accuracy}%</p>
+                                   </div>
+                               </div>
+                               <p className="text-sm font-medium text-slate-500 mt-2">Accuracy</p>
+                           </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-lg p-6">
+                            {isLoading ? (
+                                <p className="text-center text-slate-500">Loading tasks...</p>
+                            ) : tasks.length > 0 ? (
+                                <ul className="space-y-4">
+                                    {tasks.map(task => (
+                                        <li key={task.id} className="flex items-center p-3 bg-slate-50 rounded-lg transition-all duration-300 hover:shadow-md">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={task.completed}
+                                                onChange={() => toggleTask(task)}
+                                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                            />
+                                            <span className={`flex-grow mx-4 text-slate-700 ${task.completed ? 'line-through text-slate-400' : ''}`}>{task.text}</span>
+                                            <button onClick={() => deleteTask(task.id)} className="text-red-400 hover:text-red-600 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-center text-slate-500 py-8">No tasks for today. Add one to get started!</p>
+                            )}
+                        </div>
+                        <div className="mt-8 text-center">
+                            <button onClick={downloadReport} disabled={tasks.length === 0} className="px-8 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition disabled:bg-slate-300 disabled:cursor-not-allowed">
+                                Download Report (PDF)
+                            </button>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+        
+        // --- Root App Component ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+            const [notification, setNotification] = useState(null);
+
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+                    if(currentUser) {
+                        setUser(currentUser);
+                    } else {
+                        if (initialAuthToken) {
+                            try {
+                                await auth.signInWithCustomToken(initialAuthToken);
+                            } catch (error) {
+                                console.error("Custom token sign-in failed:", error);
+                                await auth.signInAnonymously();
+                            }
+                        } else {
+                            setUser(null);
+                        }
+                    }
+                    setIsLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+            
+            const handleDismissNotification = () => {
+                setNotification(null);
+            };
+
+            if (isLoading) {
+                return <Loader />;
+            }
+
+            return (
+                <React.Fragment>
+                    {notification && <Notification message={notification.message} type={notification.type} onDismiss={handleDismissNotification} />}
+                    {user ? <Dashboard user={user} setNotification={setNotification} /> : <AuthPage setNotification={setNotification} />}
+                </React.Fragment>
+            );
+        };
+        
+        // --- Render the App ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
