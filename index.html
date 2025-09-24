@@ -22,8 +22,10 @@
         }
         /* Custom scrollbar for a cleaner look */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        .dark ::-webkit-scrollbar-track { background: #2d3748; }
         ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #718096; }
         ::-webkit-scrollbar-thumb:hover { background: #555; }
         /* Simple loader animation */
         .loader {
@@ -33,6 +35,10 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
+        }
+        .dark .loader {
+            border-color: #4a5568;
+            border-top-color: #6366f1;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -53,8 +59,20 @@
         .delay-300 { animation-delay: 300ms; }
         .delay-400 { animation-delay: 400ms; }
     </style>
+    <script>
+        // Set up Tailwind for dark mode
+        tailwind.config = {
+            darkMode: 'class',
+        }
+        // Apply saved theme on initial load
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
     <div id="root"></div>
 
     <!-- React and ReactDOM from CDN -->
@@ -130,10 +148,10 @@
             };
 
             return (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-sm">
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-sm">
                         <h3 className="text-lg font-semibold mb-2">Complete Task</h3>
-                        <p className="text-sm text-slate-600 mb-4">How long did "<span className="font-bold">{task.text}</span>" actually take you? (in minutes)</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">How long did "<span className="font-bold text-slate-800 dark:text-slate-200">{task.text}</span>" actually take you? (in minutes)</p>
                         <form onSubmit={handleSubmit}>
                             <p className="text-xs text-slate-500 mb-2">You had planned for: {task.expectedDuration} minutes</p>
                             <input
@@ -141,12 +159,57 @@
                                 value={actualDuration}
                                 onChange={(e) => setActualDuration(e.target.value)}
                                 placeholder="e.g., 45"
-                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700"
                                 autoFocus
                             />
                             <div className="flex justify-end gap-4 mt-6">
-                                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</button>
+                                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600">Cancel</button>
                                 <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Complete</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const EditTaskModal = ({ task, onUpdate, onCancel, setNotification }) => {
+            const [text, setText] = useState(task.text);
+            const [duration, setDuration] = useState(task.expectedDuration);
+            const [category, setCategory] = useState(task.category || '');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!text.trim() || !duration || duration <= 0) {
+                    setNotification({ type: 'error', message: "Please fill in all fields with valid values." });
+                    return;
+                }
+                onUpdate(task.id, {
+                    text: text.trim(),
+                    expectedDuration: parseInt(duration, 10),
+                    category: category.trim()
+                });
+            };
+            
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-sm">
+                        <h3 className="text-lg font-semibold mb-4">Edit Task</h3>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                             <div>
+                                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Task</label>
+                                <input type="text" value={text} onChange={(e) => setText(e.target.value)} className="mt-1 w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700" />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Planned Duration (mins)</label>
+                                <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} className="mt-1 w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700" />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Category (optional)</label>
+                                <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g., Physics" className="mt-1 w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700" />
+                            </div>
+                            <div className="flex justify-end gap-4 pt-4">
+                                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600">Cancel</button>
+                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Update Task</button>
                             </div>
                         </form>
                     </div>
@@ -157,15 +220,15 @@
         // --- New Home Page Component ---
         const HomePage = ({ onLoginClick }) => {
             return (
-                <React.Fragment>
-                    <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200">
+                <div className="dark:bg-slate-900">
+                    <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 dark:border-slate-700">
                         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex items-center justify-between h-16">
                                 <div className="flex items-center">
                                     <span className="text-2xl font-bold text-indigo-600">TaskTrack</span>
                                 </div>
                                 <div className="flex items-center">
-                                    <a href="#features" className="text-sm font-semibold text-slate-600 hover:text-indigo-500 mr-4 transition-colors">Features</a>
+                                    <a href="#features" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 mr-4 transition-colors">Features</a>
                                     <button onClick={onLoginClick} className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                                         Log In / Sign Up
                                     </button>
@@ -175,16 +238,16 @@
                     </header>
 
                     <main className="relative overflow-hidden">
-                        <div aria-hidden="true" className="absolute inset-0 grid grid-cols-2 -space-x-52 opacity-20">
+                        <div aria-hidden="true" className="absolute inset-0 grid grid-cols-2 -space-x-52 opacity-20 dark:opacity-30">
                             <div className="blur-[106px] h-56 bg-gradient-to-br from-indigo-600 to-purple-500"></div>
                             <div className="blur-[106px] h-32 bg-gradient-to-r from-cyan-400 to-sky-300"></div>
                         </div>
                         <div className="py-20 sm:py-32">
                             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 fade-in-up">
+                                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white fade-in-up">
                                     Master Your Time, <span className="gradient-text">Ace Your Exams.</span>
                                 </h1>
-                                <p className="mt-6 max-w-2xl mx-auto text-lg text-slate-600 fade-in-up delay-100">
+                                <p className="mt-6 max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-400 fade-in-up delay-100">
                                     Stop guessing and start measuring. TaskTrack helps you analyze your study patterns, improve your time management, and boost your accuracy for peak exam performance.
                                 </p>
                                 <div className="mt-10 flex justify-center gap-x-6 fade-in-up delay-200">
@@ -196,46 +259,46 @@
                         </div>
                     </main>
 
-                    <section id="features" className="bg-white py-20 sm:py-24">
+                    <section id="features" className="bg-white dark:bg-slate-800 py-20 sm:py-24">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="text-center">
-                                <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl fade-in-up">Everything you need to succeed.</h2>
-                                <p className="mt-4 text-lg text-slate-600 fade-in-up delay-100">The simplest way to gain a competitive edge.</p>
+                                <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl fade-in-up">Everything you need to succeed.</h2>
+                                <p className="mt-4 text-lg text-slate-600 dark:text-slate-400 fade-in-up delay-100">The simplest way to gain a competitive edge.</p>
                             </div>
                             <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                                <div className="p-8 bg-slate-50 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-200">
+                                <div className="p-8 bg-slate-50 dark:bg-slate-900 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-200">
                                     <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white mx-auto">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     </div>
-                                    <h3 className="mt-6 text-lg font-semibold text-slate-900">Track Planned vs. Actual Time</h3>
-                                    <p className="mt-2 text-base text-slate-600">Set time goals for each task and compare them against your actual performance to identify areas for improvement.</p>
+                                    <h3 className="mt-6 text-lg font-semibold text-slate-900 dark:text-white">Track Planned vs. Actual Time</h3>
+                                    <p className="mt-2 text-base text-slate-600 dark:text-slate-400">Set time goals for each task and compare them against your actual performance to identify areas for improvement.</p>
                                 </div>
-                                <div className="p-8 bg-slate-50 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-300">
+                                <div className="p-8 bg-slate-50 dark:bg-slate-900 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-300">
                                     <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white mx-auto">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
                                     </div>
-                                    <h3 className="mt-6 text-lg font-semibold text-slate-900">Measure Daily Accuracy</h3>
-                                    <p className="mt-2 text-base text-slate-600">Get a clear, data-driven score on your overall performance each day, helping you stay motivated and focused.</p>
+                                    <h3 className="mt-6 text-lg font-semibold text-slate-900 dark:text-white">Measure Daily Accuracy</h3>
+                                    <p className="mt-2 text-base text-slate-600 dark:text-slate-400">Get a clear, data-driven score on your overall performance each day, helping you stay motivated and focused.</p>
                                 </div>
-                                <div className="p-8 bg-slate-50 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-400">
+                                <div className="p-8 bg-slate-50 dark:bg-slate-900 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 fade-in-up delay-400">
                                     <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white mx-auto">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                                     </div>
-                                    <h3 className="mt-6 text-lg font-semibold text-slate-900">Download PDF Reports</h3>
-                                    <p className="mt-2 text-base text-slate-600">Easily export your daily progress reports to review your performance over time and share with mentors or study groups.</p>
+                                    <h3 className="mt-6 text-lg font-semibold text-slate-900 dark:text-white">Download PDF Reports</h3>
+                                    <p className="mt-2 text-base text-slate-600 dark:text-slate-400">Easily export your daily progress reports to review your performance over time and share with mentors or study groups.</p>
                                 </div>
                             </div>
                         </div>
                     </section>
 
-                    <footer className="bg-slate-100 border-t border-slate-200">
+                    <footer className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
                         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
                             <div className="text-center">
-                                <p className="text-base text-slate-500">&copy; 2025 TaskTrack. All rights reserved.</p>
+                                <p className="text-base text-slate-500 dark:text-slate-400">&copy; 2025 TaskTrack. All rights reserved.</p>
                             </div>
                         </div>
                     </footer>
-                </React.Fragment>
+                </div>
             );
         };
         
@@ -248,27 +311,27 @@
             };
 
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-4">
-                    <div className="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 p-4">
+                    <div className="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
                         <button 
                             onClick={onBackToHome} 
-                            className="absolute top-4 left-4 text-slate-500 hover:text-indigo-600 transition-colors"
+                            className="absolute top-4 left-4 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                             aria-label="Back to Home"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
                         </button>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-800 pt-8">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-800 dark:text-white pt-8">
                             {isLogin ? 'Welcome Back!' : 'Create Account'}
                         </h2>
                         {isLogin ? 
                             <Login onSuccess={handleAuthSuccess} setNotification={setNotification} /> : 
                             <Signup onSuccess={handleAuthSuccess} setNotification={setNotification} />
                         }
-                        <p className="text-center text-sm text-slate-500">
+                        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
                             {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                            <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-indigo-600 hover:text-indigo-500">
+                            <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-indigo-600 hover:text-indigo-500 dark:hover:text-indigo-400">
                                 {isLogin ? 'Sign up' : 'Log in'}
                             </button>
                         </p>
@@ -304,14 +367,14 @@
             return (
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div>
-                        <label htmlFor="mobile-login" className="text-sm font-medium text-slate-600">Mobile Number</label>
-                        <input id="mobile-login" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="e.g., 9876543210" className="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="mobile-login" className="text-sm font-medium text-slate-600 dark:text-slate-400">Mobile Number</label>
+                        <input id="mobile-login" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="e.g., 9876543210" className="mt-1 block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700" />
                     </div>
                     <div>
-                        <label htmlFor="password-login" className="text-sm font-medium text-slate-600">Password</label>
-                        <input id="password-login" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="password-login" className="text-sm font-medium text-slate-600 dark:text-slate-400">Password</label>
+                        <input id="password-login" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700" />
                     </div>
-                    <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300">
+                    <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400">
                         {isLoading ? 'Logging in...' : 'Log In'}
                     </button>
                 </form>
@@ -349,18 +412,18 @@
             return (
                 <form onSubmit={handleSignup} className="space-y-4">
                     <div>
-                        <label htmlFor="mobile-signup" className="text-sm font-medium text-slate-600">Mobile Number</label>
-                        <input id="mobile-signup" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Enter your 10-digit mobile" className="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="mobile-signup" className="text-sm font-medium text-slate-600 dark:text-slate-400">Mobile Number</label>
+                        <input id="mobile-signup" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Enter your 10-digit mobile" className="mt-1 block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700" />
                     </div>
                     <div>
-                        <label htmlFor="password-signup" className="text-sm font-medium text-slate-600">Password</label>
-                        <input id="password-signup" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="password-signup" className="text-sm font-medium text-slate-600 dark:text-slate-400">Password</label>
+                        <input id="password-signup" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-700" />
                     </div>
                     <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-3 rounded-lg">
                         <p className="text-xs font-bold">Important!</p>
                         <p className="text-xs">There is no way to recover your password. Please save it in a safe place.</p>
                     </div>
-                    <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300">
+                    <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400">
                         {isLoading ? 'Creating Account...' : 'Sign Up'}
                     </button>
                 </form>
@@ -368,14 +431,16 @@
         };
         
         // --- Main Application Components ---
-        const Dashboard = ({ user, setNotification }) => {
+        const Dashboard = ({ user, setNotification, onLogout, theme, toggleTheme }) => {
             const [tasks, setTasks] = useState([]);
             const [newTask, setNewTask] = useState('');
             const [newExpectedDuration, setNewExpectedDuration] = useState('');
+            const [newCategory, setNewCategory] = useState('');
             const [isLoading, setIsLoading] = useState(true);
             const [taskToComplete, setTaskToComplete] = useState(null);
-            const today = useMemo(() => new Date().toISOString().split('T')[0], []);
-            
+            const [taskToEdit, setTaskToEdit] = useState(null);
+            const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
             const tasksCollectionRef = useMemo(() => 
                 db.collection(`artifacts/${appId}/users/${user.uid}/tasks`), 
                 [user.uid]
@@ -383,7 +448,7 @@
 
             useEffect(() => {
                 setIsLoading(true);
-                const q = tasksCollectionRef.where("date", "==", today);
+                const q = tasksCollectionRef.where("date", "==", selectedDate);
                 
                 const unsubscribe = q.onSnapshot((querySnapshot) => {
                     const tasksData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -402,7 +467,7 @@
                 });
 
                 return () => unsubscribe();
-            }, [tasksCollectionRef, today]);
+            }, [tasksCollectionRef, selectedDate]);
 
             const handleAddTask = async (e) => {
                 e.preventDefault();
@@ -414,13 +479,15 @@
                     await tasksCollectionRef.add({
                         text: newTask.trim(),
                         expectedDuration: parseInt(newExpectedDuration, 10),
+                        category: newCategory.trim(),
                         completed: false,
                         actualDuration: null,
-                        date: today,
+                        date: selectedDate,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     setNewTask('');
                     setNewExpectedDuration('');
+                    setNewCategory('');
                     setNotification({ type: 'success', message: 'Task added!' });
                 } catch (error) {
                     console.error("Error adding task: ", error);
@@ -428,6 +495,18 @@
                 }
             };
             
+            const handleUpdateTask = async (taskId, updatedData) => {
+                const taskRef = tasksCollectionRef.doc(taskId);
+                try {
+                    await taskRef.update(updatedData);
+                    setTaskToEdit(null);
+                    setNotification({ type: 'success', message: 'Task updated successfully!' });
+                } catch(error) {
+                    console.error("Error updating task: ", error);
+                    setNotification({ type: 'error', message: "Couldn't update task." });
+                }
+            };
+
             const handleCompleteTask = async (task, actualDuration) => {
                 const taskRef = tasksCollectionRef.doc(task.id);
                 try {
@@ -493,14 +572,15 @@
                 doc.setFontSize(20);
                 doc.text("Daily Progress Report", 14, 22);
                 doc.setFontSize(12);
-                doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 30);
+                doc.text(`Date: ${new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString()}`, 14, 30);
                 
-                const tableColumn = ["#", "Task", "Planned (min)", "Actual (min)", "Accuracy", "Status"];
+                const tableColumn = ["#", "Task", "Category", "Planned (min)", "Actual (min)", "Accuracy", "Status"];
                 const tableRows = tasks.map((task, index) => {
                      const accuracy = task.completed ? `${calculateTaskAccuracy(task.expectedDuration, task.actualDuration)}%` : 'N/A';
                      return [
                          index + 1,
                          task.text,
+                         task.category || 'N/A',
                          task.expectedDuration,
                          task.completed ? task.actualDuration : 'N/A',
                          accuracy,
@@ -526,110 +606,125 @@
                 doc.text(`Completed Tasks: ${completedTasks}`, 14, finalY + 29);
                 doc.text(`Overall Accuracy: ${overallAccuracy}%`, 14, finalY + 36);
 
-                doc.save(`Progress-Report-${today}.pdf`);
+                doc.save(`Progress-Report-${selectedDate}.pdf`);
                 setNotification({ type: 'success', message: 'Report downloaded!' });
             };
 
             const completedTasks = tasks.filter(t => t.completed).length;
             const totalTasks = tasks.length;
+            const isToday = new Date().toISOString().split('T')[0] === selectedDate;
             
             return (
-                <div className="min-h-screen bg-slate-100">
-                    <header className="bg-white shadow-sm">
+                <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
+                    <header className="bg-white dark:bg-slate-800 shadow-sm">
                         <div className="max-w-4xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                            <h1 className="text-xl sm:text-2xl font-bold text-indigo-600">TaskTrack</h1>
-                            <button onClick={() => auth.signOut()} className="text-sm font-medium text-slate-600 hover:text-indigo-500 transition">Logout</button>
+                            <h1 className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">TaskTrack</h1>
+                            <div className="flex items-center gap-4">
+                                <button onClick={toggleTheme} className="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300">
+                                    {theme === 'light' ? 
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg> : 
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                    }
+                                </button>
+                                <button onClick={onLogout} className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition">Logout</button>
+                            </div>
                         </div>
                     </header>
                     <main className="max-w-4xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-                        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
-                            <h2 className="text-lg sm:text-xl font-semibold text-slate-700 mb-4">Today's Tasks - {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
-                            <form onSubmit={handleAddTask} className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                                <h2 className="text-lg sm:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-2 sm:mb-0">Tasks for:</h2>
                                 <input 
-                                    type="text" 
-                                    value={newTask} 
-                                    onChange={(e) => setNewTask(e.target.value)}
-                                    placeholder="What do you need to do?"
-                                    className="w-full sm:flex-grow px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 sm:mb-0"
+                                    type="date" 
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"
                                 />
-                                <input 
-                                    type="number" 
-                                    value={newExpectedDuration} 
-                                    onChange={(e) => setNewExpectedDuration(e.target.value)}
-                                    placeholder="Mins"
-                                    className="w-full sm:w-24 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 sm:mb-0"
-                                />
-                                <button type="submit" className="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
-                                    Add
-                                </button>
-                            </form>
+                            </div>
+                            {isToday && (
+                                <form onSubmit={handleAddTask} className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <input type="text" value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="What do you need to do?" className="w-full sm:flex-grow px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 sm:mb-0 bg-white dark:bg-slate-700" />
+                                    <input type="text" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Category" className="w-full sm:w-32 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 sm:mb-0 bg-white dark:bg-slate-700" />
+                                    <input type="number" value={newExpectedDuration} onChange={(e) => setNewExpectedDuration(e.target.value)} placeholder="Mins" className="w-full sm:w-24 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 sm:mb-0 bg-white dark:bg-slate-700" />
+                                    <button type="submit" className="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Add</button>
+                                </form>
+                            )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                           <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col justify-center items-center">
-                               <p className="text-3xl sm:text-4xl font-bold text-indigo-600">{totalTasks}</p>
-                               <p className="text-sm font-medium text-slate-500 mt-1">Total Tasks</p>
+                           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col justify-center items-center">
+                               <p className="text-3xl sm:text-4xl font-bold text-indigo-600 dark:text-indigo-400">{totalTasks}</p>
+                               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Total Tasks</p>
                            </div>
-                           <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col justify-center items-center">
-                               <p className="text-3xl sm:text-4xl font-bold text-green-500">{completedTasks}</p>
-                               <p className="text-sm font-medium text-slate-500 mt-1">Completed</p>
+                           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col justify-center items-center">
+                               <p className="text-3xl sm:text-4xl font-bold text-green-500 dark:text-green-400">{completedTasks}</p>
+                               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Completed</p>
                            </div>
-                           <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col justify-center items-center">
+                           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col justify-center items-center">
                                <div className="relative w-24 h-24">
                                    <svg className="w-full h-full" viewBox="0 0 36 36">
-                                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e6e6e6" strokeWidth="3" />
-                                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={overallAccuracy > 0 ? '#4ade80' : '#e6e6e6'} strokeWidth="3" strokeDasharray={`${overallAccuracy}, 100`} strokeLinecap="round" />
+                                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e6e6e6" className="dark:stroke-slate-700" strokeWidth="3" />
+                                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={overallAccuracy > 0 ? '#4ade80' : 'transparent'} strokeWidth="3" strokeDasharray={`${overallAccuracy}, 100`} strokeLinecap="round" />
                                    </svg>
                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                                       <p className="text-lg sm:text-xl font-bold text-slate-700">{overallAccuracy}%</p>
+                                       <p className="text-lg sm:text-xl font-bold text-slate-700 dark:text-slate-200">{overallAccuracy}%</p>
                                    </div>
                                </div>
-                               <p className="text-sm font-medium text-slate-500 mt-2">Overall Accuracy</p>
+                               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2">Overall Accuracy</p>
                            </div>
                         </div>
-                        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-4 sm:p-6">
                             {isLoading ? (
-                                <p className="text-center text-slate-500">Loading tasks...</p>
+                                <p className="text-center text-slate-500 dark:text-slate-400">Loading tasks...</p>
                             ) : tasks.length > 0 ? (
                                 <ul className="space-y-4">
                                     {tasks.map(task => {
                                         const taskAccuracy = task.completed ? calculateTaskAccuracy(task.expectedDuration, task.actualDuration) : null;
                                         return (
-                                            <li key={task.id} className="flex items-center p-3 bg-slate-50 rounded-lg transition-all duration-300 hover:shadow-md">
+                                            <li key={task.id} className="flex items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg transition-all duration-300 hover:shadow-md">
                                                 <input 
                                                     type="checkbox" 
                                                     checked={task.completed}
                                                     onChange={() => task.completed ? handleUncompleteTask(task) : setTaskToComplete(task)}
-                                                    className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer flex-shrink-0"
+                                                    className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer flex-shrink-0 bg-white dark:bg-slate-600"
+                                                    disabled={!isToday}
                                                 />
                                                 <div className="flex-grow mx-3 sm:mx-4 overflow-hidden">
-                                                    <p className={`text-slate-700 break-words ${task.completed ? 'line-through text-slate-400' : ''}`}>{task.text}</p>
-                                                    <div className="text-xs text-slate-500 flex items-center gap-x-2 sm:gap-x-3 mt-1 flex-wrap">
+                                                     <p className={`text-slate-700 dark:text-slate-200 break-words ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>{task.text}</p>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-x-2 sm:gap-x-3 mt-1 flex-wrap">
+                                                        {task.category && <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full font-medium">{task.category}</span>}
                                                         <span>Plan: {task.expectedDuration}m</span>
                                                         {task.completed && (
                                                             <React.Fragment>
                                                                 <span className="hidden sm:inline">|</span>
                                                                 <span>Actual: {task.actualDuration}m</span>
                                                                 <span className="hidden sm:inline">|</span>
-                                                                <span className={taskAccuracy >= 80 ? 'text-green-600 font-semibold' : 'text-amber-600 font-semibold'}>
+                                                                <span className={taskAccuracy >= 80 ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-amber-600 dark:text-amber-400 font-semibold'}>
                                                                     Acc: {taskAccuracy}%
                                                                 </span>
                                                             </React.Fragment>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <button onClick={() => deleteTask(task.id)} className="text-red-400 hover:text-red-600 transition ml-auto flex-shrink-0 p-1">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </button>
+                                                {isToday &&
+                                                    <div className="flex items-center ml-auto flex-shrink-0">
+                                                        <button onClick={() => setTaskToEdit(task)} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition p-1" disabled={task.completed}>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>
+                                                        </button>
+                                                        <button onClick={() => deleteTask(task.id)} className="text-red-400 hover:text-red-600 transition p-1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        </button>
+                                                    </div>
+                                                }
                                             </li>
                                         );
                                     })}
                                 </ul>
                             ) : (
-                                <p className="text-center text-slate-500 py-8">No tasks for today. Add one to get started!</p>
+                                <p className="text-center text-slate-500 dark:text-slate-400 py-8">No tasks found for this date.</p>
                             )}
                         </div>
                         <div className="mt-8 text-center">
-                            <button onClick={downloadReport} disabled={tasks.length === 0} className="px-8 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition disabled:bg-slate-300 disabled:cursor-not-allowed">
+                            <button onClick={downloadReport} disabled={tasks.length === 0} className="px-8 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed">
                                 Download Report (PDF)
                             </button>
                         </div>
@@ -641,6 +736,14 @@
                             onCancel={() => setTaskToComplete(null)}
                         />
                     )}
+                    {taskToEdit && (
+                        <EditTaskModal
+                           task={taskToEdit}
+                           onUpdate={handleUpdateTask}
+                           onCancel={() => setTaskToEdit(null)}
+                           setNotification={setNotification}
+                        />
+                    )}
                 </div>
             );
         };
@@ -650,8 +753,22 @@
             const [user, setUser] = useState(null);
             const [isLoading, setIsLoading] = useState(true);
             const [notification, setNotification] = useState(null);
-            // New state to manage which page is shown: 'home' or 'auth'
             const [currentPage, setCurrentPage] = useState('home'); 
+            const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+            useEffect(() => {
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+            }, [theme]);
+            
+            const toggleTheme = () => {
+                setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+            };
 
             useEffect(() => {
                 const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -659,9 +776,6 @@
                         setUser(currentUser);
                     } else {
                         setUser(null);
-                        // Do not reset to 'home' on logout automatically
-                        // to prevent being kicked out unexpectedly.
-                        // The logout button will handle this.
                     }
                     setIsLoading(false);
                 });
@@ -679,7 +793,7 @@
             
             const renderContent = () => {
                 if (user) {
-                    return <Dashboard user={user} setNotification={setNotification} onLogout={handleLogout} />;
+                    return <Dashboard user={user} setNotification={setNotification} onLogout={handleLogout} theme={theme} toggleTheme={toggleTheme} />;
                 }
                 
                 if (currentPage === 'home') {
