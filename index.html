@@ -234,80 +234,127 @@
         };
 
         // NEW Pomodoro Timer Component from Version 2
-        const PomodoroTimerModal = ({ task, onComplete, onCancel, setNotification }) => {
-            const FOCUS_TIME = 25 * 60;
-            const BREAK_TIME = 5 * 60;
-            const [isBreak, setIsBreak] = useState(false);
-            const [timeLeft, setTimeLeft] = useState(FOCUS_TIME);
-            const [isActive, setIsActive] = useState(false);
-            const timerRef = useRef(null);
+        // ✅ Sound alert
+    const playSound = () => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 1);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 1);
+    };
 
-            useEffect(() => {
-                if (isActive && timeLeft > 0) {
-                    timerRef.current = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-                } else if (timeLeft === 0) {
-                    clearInterval(timerRef.current);
-                    if (!isBreak) {
-                        setNotification({ type: 'success', message: "Focus session complete! Time for a break." });
-                        onComplete(task, 25);
-                        setIsBreak(true);
-                        setTimeLeft(BREAK_TIME);
-                        setIsActive(true);
-                    } else {
-                        setNotification({ type: 'success', message: "Break's over! Ready for another session?" });
-                        onCancel();
-                    }
-                }
-                return () => clearInterval(timerRef.current);
-            }, [isActive, timeLeft, isBreak, task, onComplete, onCancel, setNotification]);
+    // ✅ Desktop Notification
+    const showNotification = (title, body) => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+        new Notification(title, { body });
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+            new Notification(title, { body });
+        }
+        });
+    }
+    };
 
-            const toggleTimer = () => setIsActive(!isActive);
-            const resetTimer = () => {
-                clearInterval(timerRef.current);
-                setIsActive(false);
-                setIsBreak(false);
-                setTimeLeft(FOCUS_TIME);
-            };
-            const formatTime = (seconds) => {
-                const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-                const secs = (seconds % 60).toString().padStart(2, '0');
-                return `${mins}:${secs}`;
-            };
+    // ✅ Enhanced Pomodoro Modal
+    const PomodoroTimerModal = ({ task, onComplete, onCancel, setNotification }) => {
+    const FOCUS_TIME = 25 * 60;
+    const [isBreak, setIsBreak] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(FOCUS_TIME);
+    const [isActive, setIsActive] = useState(false);
+    const [breakTime, setBreakTime] = useState(15 * 60);
+    const timerRef = useRef(null);
 
-            return (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[60] p-4">
-                    <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
-                        <h3 className="text-lg font-semibold mb-2">{isBreak ? 'Break Time' : 'Focus Session'}</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 truncate">Task: {task.text}</p>
-                        <div className={`text-6xl font-bold my-6 ${isBreak ? 'text-green-500' : 'text-indigo-600'}`}>
-                            {formatTime(timeLeft)}
-                        </div>
-                        <div className="flex justify-center gap-4">
-                            <button 
-                                onClick={toggleTimer} 
-                                className={`px-6 py-3 text-lg font-semibold text-white rounded-lg shadow-md transition ${
-                                    isActive ? 'bg-amber-500 hover:bg-amber-600' : 'bg-indigo-600 hover:bg-indigo-700'
-                                }`}
-                            >
-                                {isActive ? 'Pause' : 'Start'}
-                            </button>
-                            <button 
-                                onClick={resetTimer} 
-                                className="px-6 py-3 text-lg font-semibold text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 rounded-lg shadow-md hover:bg-slate-300 dark:hover:bg-slate-600"
-                            >
-                                Reset
-                            </button>
-                        </div>
-                        <button 
-                            onClick={onCancel} 
-                            className="mt-6 text-sm text-slate-500 hover:text-indigo-500"
-                        >
-                            Close Timer
-                        </button>
-                    </div>
-                </div>
-            );
-        };
+    const formatTime = (seconds) =>
+        `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
+
+    useEffect(() => {
+        if (isActive && timeLeft > 0) {
+        timerRef.current = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+        } else if (timeLeft === 0) {
+        clearInterval(timerRef.current);
+        playSound();
+        if (!isBreak) {
+            const message = "Focus session complete! Time for a break.";
+            setNotification({ type: "success", message });
+            showNotification("Pomodoro Timer", message);
+            onComplete(task, 25);
+            const userBreak = prompt("Focus over! Enter break time in minutes:", "15");
+            const breakMinutes = parseInt(userBreak, 10);
+            if (!isNaN(breakMinutes) && breakMinutes > 0) {
+            setBreakTime(breakMinutes * 60);
+            setTimeLeft(breakMinutes * 60);
+            setIsBreak(true);
+            setIsActive(true);
+            } else {
+            setIsActive(false);
+            }
+        } else {
+            const message = "Break's over! Ready for another session?";
+            setNotification({ type: "success", message });
+            showNotification("Pomodoro Timer", message);
+            setIsBreak(false);
+            setIsActive(false);
+            setTimeLeft(FOCUS_TIME);
+            onCancel();
+        }
+        }
+        return () => clearInterval(timerRef.current);
+    }, [isActive, timeLeft, isBreak]);
+
+    const toggleTimer = () => {
+        if (!isActive && Notification.permission === "default") {
+        Notification.requestPermission();
+        }
+        setIsActive(!isActive);
+    };
+
+    const resetTimer = () => {
+        clearInterval(timerRef.current);
+        setIsActive(false);
+        setIsBreak(false);
+        setTimeLeft(FOCUS_TIME);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[60] p-4">
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
+            <h3 className="text-lg font-semibold mb-2">{isBreak ? "Break Time" : "Focus Session"}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 truncate">Task: {task.text}</p>
+            <div className={`text-6xl font-bold my-6 ${isBreak ? "text-green-500" : "text-indigo-600"}`}>
+            {formatTime(timeLeft)}
+            </div>
+            <div className="flex justify-center gap-4">
+            <button
+                onClick={toggleTimer}
+                className={`px-6 py-3 text-lg font-semibold text-white rounded-lg shadow-md transition ${
+                isActive ? "bg-amber-500 hover:bg-amber-600" : "bg-indigo-600 hover:bg-indigo-700"
+                }`}
+            >
+                {isActive ? "Pause" : "Start"}
+            </button>
+            <button
+                onClick={resetTimer}
+                className="px-6 py-3 text-lg font-semibold text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 rounded-lg shadow-md hover:bg-slate-300 dark:hover:bg-slate-600"
+            >
+                Reset
+            </button>
+            </div>
+            <button onClick={onCancel} className="mt-6 text-sm text-slate-500 hover:text-indigo-500">
+            Close Timer
+            </button>
+        </div>
+        </div>
+    );
+    };
+
         
         // --- New Home Page Component with Enhanced Features from Version 2 ---
         const HomePage = ({ onLoginClick }) => {
