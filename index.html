@@ -902,13 +902,13 @@
                 doc.setFontSize(16);
                 doc.text("Daily Tasks Summary", 14, 50);
                 
-                const tableColumn = ["S.No", "Task Description", "Category", "Assigned Time (min)", "Actual Time (min)", "Accuracy %", "Status"];
+                const tableColumn = ["S.No", "Task Description", "Date", "Assigned Time (min)", "Actual Time (min)", "Accuracy %", "Status"];
                 const tableRows = tasks.map((task, index) => {
                      const accuracy = task.completed ? calculateTaskAccuracy(task.expectedDuration, task.actualDuration) : 0;
                      return [
                          index + 1,
                          task.text.length > 30 ? task.text.substring(0, 30) + '...' : task.text,
-                         task.category || 'N/A',
+                         new Date(task.date).toLocaleDateString(),
                          task.expectedDuration,
                          task.completed ? task.actualDuration : 'N/A',
                          task.completed ? `${accuracy}%` : 'N/A',
@@ -925,8 +925,8 @@
                     headStyles: { fillColor: [99, 102, 241] },
                     columnStyles: {
                         0: { halign: 'center', cellWidth: 15 },
-                        1: { cellWidth: 60 },
-                        2: { cellWidth: 25 },
+                        1: { cellWidth: 50 },
+                        2: { halign: 'center', cellWidth: 30 },
                         3: { halign: 'center', cellWidth: 25 },
                         4: { halign: 'center', cellWidth: 25 },
                         5: { halign: 'center', cellWidth: 20 },
