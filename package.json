@@ -1,0 +1,22 @@
+{
+  "name": "daily-task-tracker",
+  "version": "1.0.0",
+  "description": "A daily task tracker app with Firebase integration and Pomodoro timer",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step required for static HTML'",
+    "start": "echo 'Static site - serve index.html'"
+  },
+  "keywords": [
+    "task-tracker",
+    "productivity",
+    "pomodoro",
+    "firebase",
+    "react"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

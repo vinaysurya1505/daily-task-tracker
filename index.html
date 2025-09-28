@@ -83,23 +83,42 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script type="text/babel">
-        // --- Your web app's Firebase configuration (Hardcoded for reliability) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCZBPlWEsuZkHZr-_UbZYY9ZvqRqso8qQk",
-            authDomain: "daily-task-tracker-97f29.firebaseapp.com",
-            projectId: "daily-task-tracker-97f29",
-            storageBucket: "daily-task-tracker-97f29.firebasestorage.app",
-            messagingSenderId: "797229727242",
-            appId: "1:797229727242:web:5a154912b2d4fa0d4269f3",
-            measurementId: "G-WM6TF1HCK0"
-        };
+        // --- Firebase configuration loaded from API ---
+        let firebaseConfig = null;
+        let appId = null;
         
-        const appId = 'daily-task-tracker-97f29';
+        // Load Firebase config from API
+        const loadFirebaseConfig = async () => {
+            try {
+                const response = await fetch('/api/auth');
+                const config = await response.json();
+                firebaseConfig = config.firebaseConfig;
+                appId = config.appId;
+            } catch (error) {
+                console.error('Failed to load Firebase config:', error);
+                // Fallback config for development
+                firebaseConfig = {
+                    apiKey: "AIzaSyCZBPlWEsuZkHZr-_UbZYY9ZvqRqso8qQk",
+                    authDomain: "daily-task-tracker-97f29.firebaseapp.com",
+                    projectId: "daily-task-tracker-97f29",
+                    storageBucket: "daily-task-tracker-97f29.firebasestorage.app",
+                    messagingSenderId: "797229727242",
+                    appId: "1:797229727242:web:5a154912b2d4fa0d4269f3",
+                    measurementId: "G-WM6TF1HCK0"
+                };
+                appId = 'daily-task-tracker-97f29';
+            }
+        };
 
         // --- Firebase Initialization (using compat libraries) ---
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        let app, auth, db;
+        
+        const initializeFirebase = async () => {
+            await loadFirebaseConfig();
+            app = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+        };
 
         // --- React Components (All in one file) ---
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
@@ -1099,6 +1118,7 @@
             const [isLoading, setIsLoading] = useState(true);
             const [notification, setNotification] = useState(null);
             const [currentView, setCurrentView] = useState('home'); // 'home', 'auth', 'dashboard'
+            const [firebaseReady, setFirebaseReady] = useState(false);
 
             // Theme state and handlers
             const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -1116,8 +1136,18 @@
                 }
             }, [theme]);
 
+            // Initialize Firebase first
+            useEffect(() => {
+                const init = async () => {
+                    await initializeFirebase();
+                    setFirebaseReady(true);
+                };
+                init();
+            }, []);
 
             useEffect(() => {
+                if (!firebaseReady) return;
+                
                 const unsubscribe = auth.onAuthStateChanged(user => {
                     setUser(user);
                     if(user) {
@@ -1131,7 +1161,7 @@
                     setIsLoading(false);
                 });
                 return () => unsubscribe();
-            }, [currentView]); // Depend on currentView to avoid navigating away from auth page on logout
+            }, [currentView, firebaseReady]); // Depend on currentView to avoid navigating away from auth page on logout
 
             const handleLogout = async () => {
                 try {
