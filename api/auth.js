@@ -37,9 +37,10 @@ module.exports = async (req, res) => {
             
             if (!appId) {
                 console.error('Missing APP_ID environment variable');
+                console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('APP') || k.includes('FIREBASE')));
                 return res.status(500).json({
                     error: 'Missing APP_ID environment variable',
-                    details: 'Please set APP_ID in Vercel environment variables'
+                    details: 'Please set APP_ID (not FIREBASE_APP_ID) in Vercel environment variables. Value should be: daily-task-tracker-97f29'
                 });
             }
 
