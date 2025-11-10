@@ -14,10 +14,32 @@ module.exports = async (req, res) => {
 
     if (req.method === 'GET') {
         try {
-            // Validate that config is loaded
+            // Validate that config is loaded from environment variables
             if (!firebaseConfig || !firebaseConfig.apiKey) {
+                console.error('Missing FIREBASE_API_KEY environment variable');
                 return res.status(500).json({ 
-                    error: 'Firebase configuration not properly set. Please check environment variables.' 
+                    error: 'Firebase configuration not properly set. Please check environment variables in Vercel dashboard.',
+                    details: 'Missing FIREBASE_API_KEY or other required environment variables. Go to Vercel → Settings → Environment Variables and add all Firebase configuration variables.'
+                });
+            }
+            
+            // Validate all required fields
+            const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+            const missingFields = requiredFields.filter(field => !firebaseConfig[field]);
+            
+            if (missingFields.length > 0) {
+                console.error('Missing Firebase config fields:', missingFields);
+                return res.status(500).json({
+                    error: 'Incomplete Firebase configuration',
+                    details: `Missing environment variables: ${missingFields.map(f => `FIREBASE_${f.toUpperCase()}`).join(', ')}`
+                });
+            }
+            
+            if (!appId) {
+                console.error('Missing APP_ID environment variable');
+                return res.status(500).json({
+                    error: 'Missing APP_ID environment variable',
+                    details: 'Please set APP_ID in Vercel environment variables'
                 });
             }
 

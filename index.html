@@ -92,20 +92,31 @@
         const loadFirebaseConfig = async () => {
             try {
                 const response = await fetch('/api/auth');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch config from server');
+                const data = await response.json();
+                
+                // Check if API returned an error
+                if (!response.ok || data.error) {
+                    const errorMsg = data.error || data.message || 'Failed to fetch config from server';
+                    throw new Error(errorMsg);
                 }
-                const config = await response.json();
-                if (!config.firebaseConfig || !config.appId) {
-                    throw new Error('Invalid configuration received');
+                
+                // Validate config structure
+                if (!data.firebaseConfig || !data.appId) {
+                    throw new Error('Invalid configuration structure received from server');
                 }
-                firebaseConfig = config.firebaseConfig;
-                appId = config.appId;
+                
+                // Validate that config has required fields
+                if (!data.firebaseConfig.apiKey || !data.firebaseConfig.projectId) {
+                    throw new Error('Firebase configuration is incomplete. Please check environment variables in Vercel dashboard.');
+                }
+                
+                firebaseConfig = data.firebaseConfig;
+                appId = data.appId;
             } catch (error) {
                 console.error('Failed to load Firebase config:', error);
                 // No fallback - API keys must come from environment variables via API
                 // This ensures security and prevents hardcoded keys in the client
-                throw new Error('Application configuration unavailable. Please ensure environment variables are set correctly.');
+                throw error;
             }
         };
 
@@ -1516,7 +1527,11 @@
                         setFirebaseReady(true);
                     } catch (error) {
                         console.error('Firebase initialization failed:', error);
-                        setNotification({ type: 'error', message: 'Failed to load application configuration. Please refresh the page or contact support.' });
+                        const errorMessage = error.message || 'Failed to load application configuration.';
+                        const detailedMessage = errorMessage.includes('environment variables') 
+                            ? errorMessage + ' Go to Vercel Dashboard → Settings → Environment Variables and add all Firebase configuration variables.'
+                            : errorMessage + ' Please refresh the page or contact support.';
+                        setNotification({ type: 'error', message: detailedMessage });
                         setIsLoading(false);
                     }
                 };
