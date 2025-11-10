@@ -375,6 +375,227 @@
     };
 
         
+        // --- Privacy & Policy Page Component ---
+        const PrivacyPolicyPage = ({ onBackToHome }) => {
+            return (
+                <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+                    <header className="bg-white dark:bg-slate-800 shadow-sm">
+                        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                <div className="flex items-center">
+                                    <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">TaskTrack</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <button onClick={onBackToHome} className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 transition-colors">Home</button>
+                                    <button onClick={() => { window.location.hash = 'contact'; }} className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 transition-colors">Contact</button>
+                                </div>
+                            </div>
+                        </nav>
+                    </header>
+
+                    <main className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8">
+                            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-8">Privacy & Policy</h1>
+                            
+                            <div className="space-y-6 text-slate-700 dark:text-slate-300">
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">1. Information We Collect</h2>
+                                    <p className="mb-4">
+                                        TaskTrack collects and stores the following information to provide you with our services:
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-2 ml-4">
+                                        <li>Account information (mobile number and password)</li>
+                                        <li>Task data including task descriptions, categories, notes, and time tracking</li>
+                                        <li>Performance metrics including accuracy, completion rates, and streaks</li>
+                                        <li>Usage data to improve our services</li>
+                                    </ul>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">2. How We Use Your Information</h2>
+                                    <p className="mb-4">
+                                        We use the collected information to:
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-2 ml-4">
+                                        <li>Provide and maintain our task tracking services</li>
+                                        <li>Generate analytics and progress reports</li>
+                                        <li>Improve user experience and app functionality</li>
+                                        <li>Send you important updates about the service</li>
+                                    </ul>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">3. Data Storage and Security</h2>
+                                    <p className="mb-4">
+                                        Your data is securely stored using Firebase, a trusted cloud platform. We implement:
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-2 ml-4">
+                                        <li>Encrypted data transmission (HTTPS)</li>
+                                        <li>Secure authentication mechanisms</li>
+                                        <li>Regular security updates and monitoring</li>
+                                        <li>Access controls to protect your personal information</li>
+                                    </ul>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">4. Data Sharing</h2>
+                                    <p className="mb-4">
+                                        We do not sell, trade, or rent your personal information to third parties. Your data is:
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-2 ml-4">
+                                        <li>Only accessible to you through your account</li>
+                                        <li>Not shared with advertisers or marketing companies</li>
+                                        <li>Used solely for providing and improving our services</li>
+                                    </ul>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">5. Your Rights</h2>
+                                    <p className="mb-4">
+                                        You have the right to:
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-2 ml-4">
+                                        <li>Access your personal data at any time</li>
+                                        <li>Modify or update your information</li>
+                                        <li>Delete your account and all associated data</li>
+                                        <li>Export your data in PDF format</li>
+                                    </ul>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">6. Cookies and Tracking</h2>
+                                    <p className="mb-4">
+                                        TaskTrack uses local storage to remember your preferences (like dark mode) and maintain your session. We do not use tracking cookies or third-party analytics that compromise your privacy.
+                                    </p>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">7. Changes to This Policy</h2>
+                                    <p className="mb-4">
+                                        We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
+                                    </p>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">8. Contact Us</h2>
+                                    <p className="mb-4">
+                                        If you have any questions about this Privacy Policy, please contact us at:
+                                    </p>
+                                    <p className="font-semibold text-indigo-600 dark:text-indigo-400">
+                                        Email: <a href="mailto:vinaykasaudhan1505@zohomail.in" className="hover:underline">vinaykasaudhan1505@zohomail.in</a>
+                                    </p>
+                                </section>
+
+                                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                        Last updated: {new Date().toLocaleDateString()}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        // --- Contact Page Component ---
+        const ContactPage = ({ onBackToHome }) => {
+            return (
+                <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+                    <header className="bg-white dark:bg-slate-800 shadow-sm">
+                        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                <div className="flex items-center">
+                                    <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">TaskTrack</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <button onClick={onBackToHome} className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 transition-colors">Home</button>
+                                    <button onClick={() => { window.location.hash = 'privacy'; }} className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 transition-colors">Privacy & Policy</button>
+                                </div>
+                            </div>
+                        </nav>
+                    </header>
+
+                    <main className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8">
+                            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-8">Contact Us</h1>
+                            
+                            <div className="space-y-8">
+                                <section>
+                                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">Get in Touch</h2>
+                                    <p className="text-slate-700 dark:text-slate-300 mb-6">
+                                        We'd love to hear from you! Whether you have a question, feedback, or need support, feel free to reach out to us.
+                                    </p>
+                                </section>
+
+                                <section className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-6">
+                                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                        Email Us
+                                    </h3>
+                                    <p className="text-slate-700 dark:text-slate-300 mb-2">
+                                        Send us an email and we'll get back to you as soon as possible:
+                                    </p>
+                                    <a 
+                                        href="mailto:vinaykasaudhan1505@zohomail.in" 
+                                        className="text-lg font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline inline-flex items-center gap-2"
+                                    >
+                                        vinaykasaudhan1505@zohomail.in
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
+                                </section>
+
+                                <section>
+                                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">What Can We Help You With?</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                            <h4 className="font-semibold text-slate-900 dark:text-white mb-2">📧 General Inquiries</h4>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">Questions about TaskTrack features and functionality</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                            <h4 className="font-semibold text-slate-900 dark:text-white mb-2">🐛 Bug Reports</h4>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">Found an issue? Let us know and we'll fix it</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                            <h4 className="font-semibold text-slate-900 dark:text-white mb-2">💡 Feature Requests</h4>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">Have an idea? We'd love to hear it!</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                            <h4 className="font-semibold text-slate-900 dark:text-white mb-2">🔒 Privacy & Security</h4>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">Questions about data privacy and security</p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6">
+                                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Response Time</h3>
+                                    <p className="text-slate-700 dark:text-slate-300">
+                                        We typically respond to all inquiries within 24-48 hours. For urgent matters, please mention "URGENT" in your email subject line.
+                                    </p>
+                                </section>
+
+                                <section>
+                                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Follow Us</h3>
+                                    <p className="text-slate-700 dark:text-slate-300 mb-4">
+                                        Stay updated with the latest features and updates from TaskTrack.
+                                    </p>
+                                    <div className="flex gap-4">
+                                        <button className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                                            Get Started
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
         // --- New Home Page Component with Enhanced Features from Version 2 ---
         const HomePage = ({ onLoginClick }) => {
             return (
@@ -385,8 +606,10 @@
                                 <div className="flex items-center">
                                     <span className="text-2xl font-bold text-indigo-600">TaskTrack</span>
                                 </div>
-                                <div className="flex items-center">
-                                    <a href="#features" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 mr-4 transition-colors">Features</a>
+                                <div className="flex items-center gap-4">
+                                    <a href="#features" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 transition-colors">Features</a>
+                                    <button onClick={() => { window.location.hash = 'privacy'; }} className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 transition-colors">Privacy & Policy</button>
+                                    <button onClick={() => { window.location.hash = 'contact'; }} className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-500 transition-colors">Contact</button>
                                     <button onClick={onLoginClick} className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                                         Log In / Sign Up
                                     </button>
@@ -1244,6 +1467,28 @@
                 }
             }, [theme]);
 
+            // Handle hash-based routing for Privacy and Contact pages
+            useEffect(() => {
+                const handleHashChange = () => {
+                    const hash = window.location.hash.substring(1);
+                    if (hash === 'privacy' || hash === 'contact') {
+                        setCurrentView(hash);
+                    } else if (hash === '' && (currentView === 'privacy' || currentView === 'contact')) {
+                        setCurrentView('home');
+                    }
+                };
+
+                // Check initial hash on mount
+                const initialHash = window.location.hash.substring(1);
+                if (initialHash === 'privacy' || initialHash === 'contact') {
+                    setCurrentView(initialHash);
+                }
+
+                // Listen for hash changes
+                window.addEventListener('hashchange', handleHashChange);
+                return () => window.removeEventListener('hashchange', handleHashChange);
+            }, [currentView]);
+
             // Initialize Firebase first
             useEffect(() => {
                 const init = async () => {
@@ -1259,10 +1504,13 @@
                 const unsubscribe = auth.onAuthStateChanged(user => {
                     setUser(user);
                     if(user) {
-                        setCurrentView('dashboard');
+                        // Only go to dashboard if not on privacy/contact pages
+                        if (currentView !== 'privacy' && currentView !== 'contact') {
+                            setCurrentView('dashboard');
+                        }
                     } else {
                         // If already on auth page, stay there, otherwise go home
-                        if(currentView !== 'auth') {
+                        if(currentView !== 'auth' && currentView !== 'privacy' && currentView !== 'contact') {
                             setCurrentView('home');
                         }
                     }
@@ -1296,7 +1544,11 @@
                     
                     {currentView === 'home' && <HomePage onLoginClick={() => setCurrentView('auth')} />}
                     
-                    {currentView === 'auth' && <AuthPage setNotification={handleSetNotification} onBackToHome={() => setCurrentView('home')} />}
+                    {currentView === 'auth' && <AuthPage setNotification={handleSetNotification} onBackToHome={() => { setCurrentView('home'); window.location.hash = ''; }} />}
+
+                    {currentView === 'privacy' && <PrivacyPolicyPage onBackToHome={() => { setCurrentView('home'); window.location.hash = ''; }} />}
+
+                    {currentView === 'contact' && <ContactPage onBackToHome={() => { setCurrentView('home'); window.location.hash = ''; }} />}
 
                     {currentView === 'dashboard' && user && (
                         <Dashboard 
