@@ -87,26 +87,25 @@
         let firebaseConfig = null;
         let appId = null;
         
-        // Load Firebase config from API
+        // Load Firebase config from API (secure - no hardcoded keys)
+        // API keys are loaded from .env via /api/auth endpoint
         const loadFirebaseConfig = async () => {
             try {
                 const response = await fetch('/api/auth');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch config from server');
+                }
                 const config = await response.json();
+                if (!config.firebaseConfig || !config.appId) {
+                    throw new Error('Invalid configuration received');
+                }
                 firebaseConfig = config.firebaseConfig;
                 appId = config.appId;
             } catch (error) {
                 console.error('Failed to load Firebase config:', error);
-                // Fallback config for development
-                firebaseConfig = {
-                    apiKey: "AIzaSyCZBPlWEsuZkHZr-_UbZYY9ZvqRqso8qQk",
-                    authDomain: "daily-task-tracker-97f29.firebaseapp.com",
-                    projectId: "daily-task-tracker-97f29",
-                    storageBucket: "daily-task-tracker-97f29.firebasestorage.app",
-                    messagingSenderId: "797229727242",
-                    appId: "1:797229727242:web:5a154912b2d4fa0d4269f3",
-                    measurementId: "G-WM6TF1HCK0"
-                };
-                appId = 'daily-task-tracker-97f29';
+                // No fallback - API keys must come from environment variables via API
+                // This ensures security and prevents hardcoded keys in the client
+                throw new Error('Application configuration unavailable. Please ensure environment variables are set correctly.');
             }
         };
 
@@ -466,6 +465,12 @@
                                     <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">6. Cookies and Tracking</h2>
                                     <p className="mb-4">
                                         TaskTrack uses local storage to remember your preferences (like dark mode) and maintain your session. We do not use tracking cookies or third-party analytics that compromise your privacy.
+                                    </p>
+                                    <p className="mb-4">
+                                        <strong>Firebase Services:</strong> Our application uses Firebase (a Google service) for authentication and data storage. Firebase's data handling practices comply with Google's privacy policies. We do not share your personal data with third parties beyond what is necessary for Firebase to provide these services.
+                                    </p>
+                                    <p className="mb-4">
+                                        <strong>Future Services:</strong> If we ever expand to use additional Google services (such as Google Analytics, AdSense scripts, or reCAPTCHA), we will update this policy to include: "We use Google services that may collect anonymous analytics data or cookies for performance measurement."
                                     </p>
                                 </section>
 
@@ -1492,8 +1497,14 @@
             // Initialize Firebase first
             useEffect(() => {
                 const init = async () => {
-                    await initializeFirebase();
-                    setFirebaseReady(true);
+                    try {
+                        await initializeFirebase();
+                        setFirebaseReady(true);
+                    } catch (error) {
+                        console.error('Firebase initialization failed:', error);
+                        setNotification({ type: 'error', message: 'Failed to load application configuration. Please refresh the page or contact support.' });
+                        setIsLoading(false);
+                    }
                 };
                 init();
             }, []);
