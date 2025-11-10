@@ -1,6 +1,7 @@
 const { firebaseConfig, appId } = require('./config');
 
-module.exports = (req, res) => {
+// Vercel serverless function
+module.exports = async (req, res) => {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -12,11 +13,26 @@ module.exports = (req, res) => {
     }
 
     if (req.method === 'GET') {
-        // Return Firebase config for client-side initialization
-        res.status(200).json({
-            firebaseConfig,
-            appId
-        });
+        try {
+            // Validate that config is loaded
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                return res.status(500).json({ 
+                    error: 'Firebase configuration not properly set. Please check environment variables.' 
+                });
+            }
+
+            // Return Firebase config for client-side initialization
+            res.status(200).json({
+                firebaseConfig,
+                appId
+            });
+        } catch (error) {
+            console.error('Error in /api/auth:', error);
+            res.status(500).json({ 
+                error: 'Failed to load Firebase configuration',
+                message: error.message 
+            });
+        }
     } else {
         res.status(405).json({ error: 'Method not allowed' });
     }
